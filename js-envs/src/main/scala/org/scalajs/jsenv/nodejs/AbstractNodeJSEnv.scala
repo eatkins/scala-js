@@ -166,13 +166,16 @@ abstract class AbstractNodeJSEnv(
       new MemVirtualJSFile("comSetup.js").withContent(
           s"""
              |(function() {
+             |  // new Buffer() is deprecated in node 10. Buffer.alloc and Buffer.from
+             |  // have been available since node 6.
+             |  var legacy = (parseInt(process.version.match("^v(\\\\d+).*$$")[1]) || 0) < 6
              |  // The socket for communication
              |  var socket = null;
              |  // The callback where received messages go
              |  var recvCallback = null;
              |
              |  // Buffers received data
-             |  var inBuffer = new Buffer(0);
+             |  var inBuffer = legacy ? new Buffer(0) : Buffer.alloc(0);
              |
              |  function onData(data) {
              |    inBuffer = Buffer.concat([inBuffer, data]);
@@ -227,7 +230,7 @@ abstract class AbstractNodeJSEnv(
              |      if (socket === null) throw new Error("Com not open");
              |
              |      var len = msg.length;
-             |      var buf = new Buffer(4 + len * 2);
+             |      var buf = legacy ? new Buffer(4 + len * 2) : Buffer.alloc(4 + len * 2);
              |      buf.writeInt32BE(len, 0);
              |      for (var i = 0; i < len; ++i)
              |        buf.writeUInt16BE(msg.charCodeAt(i), 4 + i * 2);
